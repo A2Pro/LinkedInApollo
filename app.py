@@ -3,6 +3,7 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 import os
+from functools import wraps
 import random
 
 load_dotenv()
@@ -14,6 +15,15 @@ userinfo = db["Users"]
 logindb = db["Login"]
 app = Flask(__name__)
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("logged_in") or not session.get("username") or not session.get("id"):
+            flash("You need to be logged in to access this page.")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def gen_random_id():
     random = random.randint(1, 10,000)
     if(random in userinfo):
@@ -21,9 +31,8 @@ def gen_random_id():
     return random
 
 @app.route("/")
+@login_required
 def index():
-    if not session["logged_in"] or not session["username"] or not session["id"]:
-        return redirect("/login")
     if not session["onboarded"]:
         return redirect("/onboard")
     return render_template("index.html", user)
@@ -58,6 +67,7 @@ def signup():
             password = request.form.get("password")
             if logindb[username] == password:
                 session["logged_in"] = True
+                session["username"] = username
             else:
                 return render_template("login.html", error = "Wrong password / Username.")
         except:
@@ -67,8 +77,9 @@ def signup():
 
 
 @app.route('/onboard', methods=['GET', 'POST'])
+@login_required
 def onboard():
-
+    if()
     if request.method == 'POST':
       try:
         name = request.form.get('name')
@@ -80,6 +91,7 @@ def onboard():
         password = request.form.get('password')
         rand = gen_random_id()
         userinfo.insert_one({
+            "username" : session["username"]
             "name" : name,
             "email": email,
             "phone" : phone,
