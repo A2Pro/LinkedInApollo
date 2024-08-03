@@ -1,4 +1,4 @@
-from flask import Flask, render_template, session, redirect, request
+from flask import Flask, render_template, session, redirect, request, url_for, flash
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
@@ -18,93 +18,102 @@ app = Flask(__name__)
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get("logged_in") or not session.get("username") or not session.get("id"):
+        if not session.get("logged_in") or not session.get("username"):
             flash("You need to be logged in to access this page.")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
 
+def onboard_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = logindb.find_one({"username": session.get("username")})
+        if not user:
+            return redirect(url_for("login"))
+        if not user.get("onboarded"):
+            return redirect(url_for("onboard"))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def gen_random_id():
-    random = random.randint(1, 10,000)
-    if(random in userinfo):
-        gen_random_id()
-    return random
+    rand_id = random.randint(1, 10000)
+    if userinfo.find_one({"id": rand_id}):
+        return gen_random_id()
+    return rand_id
 
 @app.route("/")
 @login_required
 def index():
-    if not session["onboarded"]:
-        return redirect("/onboard")
-    return render_template("index.html", user)
+    if not session.get("onboarded"):
+        return redirect(url_for("onboard"))
+    return render_template("index.html")
 
-@app.route('/signup', methods = ['GET', 'POST'])
+@app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         try:
             username = request.form.get("username")
             password = request.form.get("password")
-            if username in login:
-                return render_template("signup.html", error = "Username taken.")
+            if logindb.find_one({"username": username}):
+                return render_template("signup.html", error="Username taken.")
             else:
                 logindb.insert_one({
-                    "username" : username,
-                    "password" : password
+                    "username": username,
+                    "password": password,
+                    "onboarded": False
                 })
-                return redirect("/login")
+                return redirect(url_for("login"))
         except:
-            return("error.html")
-    else:
-        return render_template("signup.html", error = None)
+            return render_template("error.html")
+    return render_template("signup.html", error=None)
 
-@app.route("/login", methods = ['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-
-@app.route('/signup', methods = ['GET', 'POST'])
-def signup():
     if request.method == 'POST':
         try:
             username = request.form.get("username")
             password = request.form.get("password")
-            if logindb[username] == password:
+            user = logindb.find_one({"username": username})
+            if not user:
+                return render_template("login.html", error="User not found.")
+            if user["password"] == password:
                 session["logged_in"] = True
                 session["username"] = username
+                session["onboarded"] = user.get("onboarded", False)
+                return redirect(url_for("index"))
             else:
-                return render_template("login.html", error = "Wrong password / Username.")
+                return render_template("login.html", error="Wrong username or password.")
         except:
-            return("error.html")
-    else:
-        return render_template("login.html", error = None)
-
+            return render_template("error.html")
+    return render_template("login.html", error=None)
 
 @app.route('/onboard', methods=['GET', 'POST'])
 @login_required
 def onboard():
-    if()
     if request.method == 'POST':
-      try:
-        name = request.form.get('name')
-        email = request.form.get('email')
-        phone = request.form.get('phone')
-        job_title = request.form.get('job_title')
-        company = request.form.get('company')
-        industry = request.form.get('industry')
-        password = request.form.get('password')
-        rand = gen_random_id()
-        userinfo.insert_one({
-            "username" : session["username"]
-            "name" : name,
-            "email": email,
-            "phone" : phone,
-            "job_title" : job_title,
-            "company" : company,
-            "industry" : industry,
-            "id" : rand,
-            "password" : password
-        })
-
-        return redirect("index.html")
-      except:
-        return("error.html")
+        try:
+            name = request.form.get('name')
+            email = request.form.get('email')
+            phone = request.form.get('phone')
+            job_title = request.form.get('job_title')
+            company = request.form.get('company')
+            industry = request.form.get('industry')
+            rand = gen_random_id()
+            userinfo.insert_one({
+                "username": session["username"],
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "job_title": job_title,
+                "company": company,
+                "industry": industry,
+                "id": rand,
+            })
+            session["onboarded"] = True
+            return redirect(url_for("index"))
+        except:
+            return render_template("error.html")
     return render_template('onboard.html')
 
-app.run(host = '0.0.0.0', port = 3945)
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=3945)
