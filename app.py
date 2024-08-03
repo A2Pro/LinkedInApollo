@@ -1,4 +1,4 @@
-from flask import Flask, render_template, session, redirect
+from flask import Flask, render_template, session, redirect, request
 
 app = Flask(__name__)
 
@@ -11,7 +11,7 @@ def index():
     return render_template("index.html", user)
 
 @app.route('/onboard', methods=['GET', 'POST'])
-def index():
+def onboard():
     if request.method == 'POST':
         name = request.form.get('name')
         email = request.form.get('email')
@@ -20,7 +20,8 @@ def index():
         company = request.form.get('company')
         industry = request.form.get('industry')
         print(f"Received form data: Name={name}, Email={email}, Phone={phone}, Job Title={job_title}, Company={company}, Industry={industry}")
-
         return redirect("index.html")
 
     return render_template('onboard.html')
+
+app.run(host = '0.0.0.0', port = 3945)
