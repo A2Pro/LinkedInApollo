@@ -34,7 +34,7 @@ def onboard_required(f):
         user = logindb.find_one({"username": session.get("username")})
         if not user:
             return redirect(url_for("login"))
-        if user["onboarded"] == "false":
+        if user["onboarded"] == False:
             return redirect(url_for("onboard"))
         return f(*args, **kwargs)
     return decorated_function
@@ -57,14 +57,14 @@ def index():
 def signup():
     if request.method == 'POST':
         try:
-            username = request.form.get("username")
+            username = request.form.get("username").lower()
             password = request.form.get("password")
             user = logindb.users.find_one({"username": username})
             if not user:
                 logindb.insert_one({
                     "username": username,
                     "password": password,
-                    "onboarded": "false"
+                    "onboarded": False
                 })
                 return redirect(url_for("login"))
             else:
@@ -78,7 +78,7 @@ def signup():
 def login():
     if request.method == 'POST':
         try:
-            username = request.form.get("username")
+            username = request.form.get("username").lower()
             password = request.form.get("password")
             user = logindb.find_one({"username": username})
             if not user:
@@ -86,7 +86,6 @@ def login():
             if user["password"] == password:
                 session["logged_in"] = True
                 session["username"] = username
-                session["onboarded"] = user.get("onboarded", False)
                 return redirect(url_for("index"))
             else:
                 return render_template("login.html", error="Wrong username or password.")
@@ -99,12 +98,12 @@ def login():
 def onboard():
     if request.method == 'POST':
         try:
-            name = request.form.get('name')
-            email = request.form.get('email')
+            name = request.form.get('name').lower()
+            email = request.form.get('email').lower()
             phone = request.form.get('phone')
-            job_title = request.form.get('job_title')
-            company = request.form.get('company')
-            industry = request.form.get('industry')
+            job_title = request.form.get('job_title').lower()
+            company = request.form.get('company').lower()
+            industry = request.form.get('industry').lower()
             rand = gen_random_id()
             userinfo.insert_one({
                 "username": session["username"],
@@ -116,19 +115,46 @@ def onboard():
                 "industry": industry,
                 "id": rand,
             })
-            session["onboarded"] = True
+            logindb.update_one(
+                {"username": session.get("username")},
+                {"$set": {"onboarded": True}}
+            )
             return redirect(url_for("index"))
         except:
             return render_template("error.html")
     return render_template('onboard.html')
 
-@app.route("/search/<criteria>/<entry>")
+@app.route("/search", methods=["GET", "POST"])
 @login_required
 @onboard_required
-def search(critera, entry):
-    users = logindb.find({critera: entry})
-    return users
+def search_form():
+    if request.method == "POST":
+        criteria_list = request.form.getlist("criteria[]")
+        entry_list = request.form.getlist("entry[]")
+        if len(criteria_list) != len(entry_list):
+            flash("Criteria and entries must be of the same length.")
+            return redirect(url_for("search_form"))
+        return redirect(url_for("searchit", criteria_list="|".join(criteria_list), entry_list="|".join(entry_list)))
+    return render_template("search.html")
 
-    
+@app.route("/searchit/<criteria_list>/<entry_list>")
+@login_required
+@onboard_required
+def searchit(criteria_list, entry_list):
+    criteria_list = criteria_list.split("|")
+    entry_list = entry_list.split("|")
+    query = {}
+    for criteria, entry in zip(criteria_list, entry_list):
+        query[criteria] = entry.lower()
+    users = userinfo.find(query)
+    users_list = list(users)
+    print(users_list)
+    if users_list:
+        return render_template("search_results.html", users=users_list)
+    else:
+        flash("No users found matching that criteria.")
+        return redirect(url_for("search_form"))
+
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=3945, debug = True)

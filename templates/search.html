@@ -1,0 +1,51 @@
+<!-- search.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search</title>
+</head>
+<body>
+    <h1>Search Users</h1>
+    <form action="{{ url_for('search_form') }}" method="POST">
+        <div id="criteria-container">
+            <div class="criteria">
+                <label for="criteria1">Search Criteria:</label>
+                <select name="criteria[]" id="criteria1">
+                    <option value="username">Username</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone</option>
+                    <option value="job_title">Job Title</option>
+                    <!-- Add more criteria as needed -->
+                </select><br><br>
+                <label for="entry1">Search Entry:</label>
+                <input type="text" id="entry1" name="entry[]"><br><br>
+            </div>
+        </div>
+        <button type="button" onclick="addCriteria()">Add Another Criterion</button><br><br>
+        <button type="submit">Search</button>
+    </form>
+    <script>
+        function addCriteria() {
+            var container = document.getElementById("criteria-container");
+            var index = container.children.length + 1;
+            var criteriaDiv = document.createElement("div");
+            criteriaDiv.className = "criteria";
+            criteriaDiv.innerHTML = `
+                <label for="criteria${index}">Search Criteria:</label>
+                <select name="criteria[]" id="criteria${index}">
+                    <option value="username">Username</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone</option>
+                    <option value="job_title">Job Title</option>
+                    <!-- Add more criteria as needed -->
+                </select><br><br>
+                <label for="entry${index}">Search Entry:</label>
+                <input type="text" id="entry${index}" name="entry[]"><br><br>
+            `;
+            container.appendChild(criteriaDiv);
+        }
+    </script>
+</body>
+</html>

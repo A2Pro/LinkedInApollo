@@ -1,0 +1,29 @@
+<!-- search_results.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+</head>
+<body>
+    <h1>Search Results</h1>
+    {% if users %}
+        {% for user in users %}
+            <div class="user-profile">
+                <p><strong>Username:</strong> {{ user.username }}</p>
+                <p><strong>Name:</strong> {{ user.name }}</p>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Phone:</strong> {{ user.phone }}</p>
+                <p><strong>Job Title:</strong> {{ user.job_title }}</p>
+                <p><strong>Company:</strong> {{ user.company }}</p>
+                <p><strong>Industry:</strong> {{ user.industry }}</p>
+                <p><strong>ID:</strong> {{ user.id }}</p>
+                <hr>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No users found.</p>
+    {% endif %}
+</body>
+</html>
