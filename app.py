@@ -15,11 +15,15 @@ userinfo = db["Users"]
 logindb = db["Login"]
 app = Flask(__name__)
 
+app.secret_key= "3405gorfejiu84tgfnje2i30rf9joed23rifu90ehoirj49getb8fvu7yd8h3ut4oig9tebifv8dwc7ey80h3ut4og5itu9b0evfdc"
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get("logged_in") or not session.get("username"):
             flash("You need to be logged in to access this page.")
+            return redirect(url_for("login"))
+        user = logindb.find_one({"username": session.get("username")})
+        if not user:
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
@@ -30,7 +34,7 @@ def onboard_required(f):
         user = logindb.find_one({"username": session.get("username")})
         if not user:
             return redirect(url_for("login"))
-        if not user.get("onboarded"):
+        if user["onboarded"] == "false":
             return redirect(url_for("onboard"))
         return f(*args, **kwargs)
     return decorated_function
@@ -43,6 +47,7 @@ def gen_random_id():
 
 @app.route("/")
 @login_required
+@onboard_required
 def index():
     if not session.get("onboarded"):
         return redirect(url_for("onboard"))
@@ -54,16 +59,18 @@ def signup():
         try:
             username = request.form.get("username")
             password = request.form.get("password")
-            if logindb.find_one({"username": username}):
-                return render_template("signup.html", error="Username taken.")
-            else:
+            user = logindb.users.find_one({"username": username})
+            if not user:
                 logindb.insert_one({
                     "username": username,
                     "password": password,
-                    "onboarded": False
+                    "onboarded": "false"
                 })
                 return redirect(url_for("login"))
-        except:
+            else:
+                return(render_template("error.html"))
+        except Exception as e:
+            print(e)
             return render_template("error.html")
     return render_template("signup.html", error=None)
 
@@ -115,5 +122,13 @@ def onboard():
             return render_template("error.html")
     return render_template('onboard.html')
 
+@app.route("/search/<criteria>/<entry>")
+@login_required
+@onboard_required
+def search(critera, entry):
+    users = logindb.find({critera: entry})
+    return users
+
+    
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=3945)
+    app.run(host='0.0.0.0', port=3945, debug = True)

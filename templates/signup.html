@@ -9,13 +9,14 @@
 <body>
     <div class="container mt-5">
         <h1 class="text-center mb-4">Let's get to know you!</h1>
-        <form method="POST" action="/onboard">
+        <form method="POST" action="/signup">
             <div class="mb-3">
-                <label for="name" class="form-label">Username</label>
-                <input type="text" class="form-control" id="name" name="name" required>
-                <label for="Password" class="form-label">Password</label>
-                <input type="text" class="form-control" id="Password" name="Password" required>
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+                <label for="password" class="form-label">Password</label>
+                <input type="text" class="form-control" id="password" name="password" required>
             </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
         </form>
     </div>
 </body>
